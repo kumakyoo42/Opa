@@ -11,7 +11,7 @@ version back to the binary format.
 
 ## Install
 
-Download [oma.jar](/oma.jar) and make sure that Java Runtime
+Download [opa.jar](/opa.jar) and make sure that Java Runtime
 Environment (JRE) is available on your system.
 
 ## Usage
