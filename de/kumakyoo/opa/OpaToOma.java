@@ -6,6 +6,8 @@ import java.util.zip.*;
 
 public class OpaToOma
 {
+    static final byte VERSION = 0;
+
     private String infile;
     private String outfile;
 
@@ -49,6 +51,10 @@ public class OpaToOma
         out.writeByte('M');
         out.writeByte('A');
 
+        nextLine("Version");
+
+        out.writeByte(VERSION);
+
         readFeatures();
         readHeaderBB();
         out.writeLong(0);
@@ -66,7 +72,7 @@ public class OpaToOma
                 out.writeInt(bb[i]==null?Integer.MAX_VALUE:bb[i][j]);
         }
 
-        out.setPosition(20);
+        out.setPosition(21);
         out.writeLong(tmp);
 
         out.close();

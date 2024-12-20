@@ -9,6 +9,7 @@ public class OmaToOpa
 {
     private String infile;
 
+    private byte version;
     private int features;
     private Chunk[] chunks;
 
@@ -32,6 +33,11 @@ public class OmaToOpa
         in.readByte();
         out.println("#OPA: from "+infile);
         out.println();
+
+        version = in.readByte();
+        out.println("Version: "+version);
+        if (version>OpaToOma.VERSION)
+            throw new IOException("unsupported version ("+version+") of oma file");
 
         features = in.readByte();
         out.println("Features: "+features(features));
