@@ -58,7 +58,7 @@ public class OpaToOma
         readFeatures();
         readHeaderBB();
         out.writeLong(0);
-
+        readTypeTable();
         readChunks();
         in.close();
 
@@ -131,6 +131,73 @@ public class OpaToOma
         int[] bb = readBB();
         for (int i=0;i<4;i++)
             out.writeInt(bb==null?Integer.MAX_VALUE:bb[i]);
+    }
+
+    private void readTypeTable() throws IOException
+    {
+        MyDataOutputStream orig = out;
+        BufferedOutputStream bos = null;
+        DeflaterOutputStream dos = null;
+
+        if (zipped)
+        {
+            dos = new DeflaterOutputStream(out, new Deflater(Deflater.BEST_COMPRESSION));
+            bos = new BufferedOutputStream(dos);
+            out = new MyDataOutputStream(bos,out);
+        }
+
+        nextLine("Types");
+
+        int typeCount = 0;
+        try
+        {
+            typeCount = Integer.parseInt(line);
+        }
+        catch (NumberFormatException e) { error("invalid number of types"); }
+        out.writeSmallInt(typeCount);
+
+        for (int i=0;i<typeCount;i++)
+        {
+            nextLine("Type");
+            out.writeByte(line.charAt(0));
+
+            nextLine("Keys");
+            int keyCount = 0;
+            try
+            {
+                keyCount = Integer.parseInt(line);
+            }
+            catch (NumberFormatException e) { error("invalid number of keys"); }
+            out.writeSmallInt(keyCount);
+
+            for (int j=0;j<keyCount;j++)
+            {
+                nextLine("Key");
+                out.writeString(line);
+
+                nextLine("Values");
+                int valueCount = 0;
+                try
+                {
+                    valueCount = Integer.parseInt(line);
+                }
+                catch (NumberFormatException e) { error("invalid number of values"); }
+                out.writeSmallInt(valueCount);
+
+                for (int k=0;k<valueCount;k++)
+                {
+                    nextLineUnfiltered();
+                    out.writeString(line);
+                }
+            }
+        }
+
+        if (zipped)
+        {
+            bos.flush();
+            dos.finish();
+            out = orig;
+        }
     }
 
     private void readChunks() throws IOException

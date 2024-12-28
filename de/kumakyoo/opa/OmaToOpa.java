@@ -44,6 +44,7 @@ public class OmaToOpa
         out.println("BoundingBox: "+bb(in.readInt(),in.readInt(),in.readInt(),in.readInt()));
 
         long chunktablePos = in.readLong();
+        readTypeTable(in);
         in.close();
 
         in = new MyDataInputStream(infile);
@@ -84,6 +85,34 @@ public class OmaToOpa
     {
         if (minlon==Integer.MAX_VALUE) return "-";
         return (minlon/1e7)+", "+(minlat/1e7)+", "+(maxlon/1e7)+", "+(maxlat/1e7);
+    }
+
+    public void readTypeTable(MyDataInputStream in) throws IOException
+    {
+        if ((features&1)!=0)
+            in = new MyDataInputStream(new BufferedInputStream(new InflaterInputStream(in)));
+
+        int typeCount = in.readSmallInt();
+        out.println("Types: "+typeCount);
+        for (int i=0;i<typeCount;i++)
+        {
+            byte type = in.readByte();
+            out.println("  Type: "+(char)type);
+            int keyCount = in.readSmallInt();
+            out.println("  Keys: "+keyCount);
+            for (int j=0;j<keyCount;j++)
+            {
+                String key = in.readString();
+                out.println("    Key: "+key);
+                int valueCount = in.readSmallInt();
+                out.println("    Values: "+valueCount);
+                for (int k=0;k<valueCount;k++)
+                {
+                    String value = in.readString();
+                    out.println("      "+value);
+                }
+            }
+        }
     }
 
     public void readChunk(int nr) throws IOException
