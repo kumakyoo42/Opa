@@ -77,6 +77,7 @@ public class OmaToOpa
         if ((f&8)!=0) features.add("timestamp");
         if ((f&16)!=0) features.add("changeset");
         if ((f&32)!=0) features.add("user");
+        if ((f&64)!=0) features.add("once");
 
         return features.size()==0?"-":String.join(", ",features);
     }

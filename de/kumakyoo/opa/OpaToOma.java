@@ -114,6 +114,9 @@ public class OpaToOma
                 user = true;
                 features += 32;
                 break;
+            case "once":
+                features += 64;
+                break;
             case "-":
                 if (count==1) break;
                 error("'-' feature cannot be combined with other features");
