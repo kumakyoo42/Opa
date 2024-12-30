@@ -171,7 +171,6 @@ public class OmaToOpa
 
     public void readSlice(MyDataInputStream in, byte type, long start, String key, String value) throws IOException
     {
-        //out.println(String.format("    %04X-%04X %s",start,start+size,value.equals("")?"<other>":value));
         out.println("    Slice: "+(value.equals("")?"-":value));
 
         in.setPosition(start);
