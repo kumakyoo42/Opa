@@ -361,6 +361,7 @@ public class OpaToOma
         case 'N': readNode(); break;
         case 'W': readWay(); break;
         case 'A': readArea(); break;
+        case 'C': readCollection(); break;
         default: error("unknown type: "+(char)type[chunk]);
         }
 
@@ -371,6 +372,13 @@ public class OpaToOma
     private void readNode() throws IOException
     {
         nextLine("Position");
+        if (line.equals("-"))
+        {
+            out.writeDeltaX(Integer.MAX_VALUE);
+            out.writeDeltaY(Integer.MAX_VALUE);
+            return;
+        }
+
         StringTokenizer t = new StringTokenizer(line,",");
         if (t.countTokens()!=2) error("geo position expected");
         out.writeDeltaX(convCoord(t.nextToken()));
@@ -400,6 +408,64 @@ public class OpaToOma
             positions("Hole");
     }
 
+    private void readCollection() throws IOException
+    {
+        nextLine("Nodes");
+        int nodes = 0;
+        try
+        {
+            nodes = Integer.parseInt(line);
+        }
+        catch (NumberFormatException e) { error("invalid number of nodes"); }
+
+        out.writeSmallInt(nodes);
+        for (int i=0;i<nodes;i++)
+        {
+            nextLine("Role");
+            out.writeString(line.trim().replaceAll("\\\\x","#").replaceAll("\\\\n","\n").replaceAll("\\\\=","=").replaceAll("\\\\\\\\","\\\\"));
+
+            nextLine("Position");
+            if (line.equals("-"))
+            {
+                out.writeDeltaX(Integer.MAX_VALUE);
+                out.writeDeltaY(Integer.MAX_VALUE);
+                continue;
+            }
+
+            StringTokenizer t = new StringTokenizer(line,",");
+            if (t.countTokens()!=2) error("geo position expected");
+            out.writeDeltaX(convCoord(t.nextToken()));
+            out.writeDeltaY(convCoord(t.nextToken()));
+        }
+
+        nextLine("Ways");
+        int ways = 0;
+        try
+        {
+            ways = Integer.parseInt(line);
+        }
+        catch (NumberFormatException e) { error("invalid number of ways"); }
+
+        out.writeSmallInt(ways);
+        for (int i=0;i<ways;i++)
+        {
+            nextLine("Role");
+            out.writeString(line.trim().replaceAll("\\\\x","#").replaceAll("\\\\n","\n").replaceAll("\\\\=","=").replaceAll("\\\\\\\\","\\\\"));
+
+            positions("Positions");
+        }
+
+        nextLine("Areas");
+        int areas = 0;
+        try
+        {
+            areas = Integer.parseInt(line);
+        }
+        catch (NumberFormatException e) { error("invalid number of areas"); }
+
+        out.writeSmallInt(areas);
+    }
+
     private void positions(String key) throws IOException
     {
         nextLine(key);
@@ -420,6 +486,13 @@ public class OpaToOma
             }
 
             StringTokenizer t = new StringTokenizer(line,",");
+            if (line.equals("-"))
+            {
+                pos.add(Integer.MAX_VALUE);
+                pos.add(Integer.MAX_VALUE);
+                continue;
+            }
+
             if (t.countTokens()!=2) error("geo position expected");
             pos.add(convCoord(t.nextToken()));
             pos.add(convCoord(t.nextToken()));

@@ -184,16 +184,43 @@ public class OmaToOpa
         {
             out.println("      Element: # "+i);
 
-            ElementWithID e = type=='N'?Node.readGeo(in):(type=='W'?Way.readGeo(in):Area.readGeo(in));
+            if (type!='N' && type!='W' && type!='A' && type!='C')
+            {
+                out.flush();
+                throw new IOException("unknown element type: "+(char)type);
+            }
+            ElementWithID e = type=='N'?Node.readGeo(in)
+                            :(type=='W'?Way.readGeo(in)
+                            :(type=='A'?Area.readGeo(in)
+                            :Collection.readGeo(in)));
             e.readTags(in);
             e.readMetaData(in,features);
             if (type=='N')
-                out.println("        Position: "+(((Node)e).lon/1e7)+", "+(((Node)e).lat/1e7));
+                out.println("        Position: "+convertPosition(((Node)e).lon,((Node)e).lat));
+            else if (type=='C')
+            {
+                out.println("        Nodes: "+((Collection)e).nlon.length);
+                for (int j=0;j<((Collection)e).nlon.length;j++)
+                {
+                    out.println("          Role: "+escapeEqual(((Collection)e).noderole[j]));
+                    out.println("          Position: "+convertPosition(((Collection)e).nlon[j],((Collection)e).nlat[j]));
+                }
+                out.println("        Ways: "+((Collection)e).wlon.length);
+                for (int j=0;j<((Collection)e).wlon.length;j++)
+                {
+                    out.println("          Role: "+escapeEqual(((Collection)e).wayrole[j]));
+                    out.println("          Positions: # "+((Collection)e).wlon[j].length);
+                    for (int k=0;k<((Collection)e).wlon[j].length;k++)
+                        out.println("            "+convertPosition(((Collection)e).wlon[j][k],((Collection)e).wlat[j][k]));
+
+                }
+                out.println("        Areas: 0");
+            }
             else
             {
                 out.println("        Positions: # "+((Way)e).lon.length);
                 for (int j=0;j<((Way)e).lon.length;j++)
-                    out.println("          "+(((Way)e).lon[j]/1e7)+", "+(((Way)e).lat[j]/1e7));
+                    out.println("          "+convertPosition(((Way)e).lon[j],((Way)e).lat[j]));
                 if (type=='A')
                 {
                     out.println("        Holes: "+((Area)e).h_lon.length);
@@ -201,7 +228,7 @@ public class OmaToOpa
                     {
                         out.println("          Hole: # "+k);
                         for (int j=0;j<((Area)e).h_lon[k].length;j++)
-                            out.println("            "+(((Area)e).h_lon[k][j]/1e7)+", "+(((Area)e).h_lat[k][j]/1e7));
+                            out.println("            "+convertPosition(((Area)e).h_lon[k][j],((Area)e).h_lat[k][j]));
                     }
                 }
             }
@@ -212,6 +239,12 @@ public class OmaToOpa
 
             printMetaData(e,out);
         }
+    }
+
+    public String convertPosition(int lon, int lat)
+    {
+        if (lon==Integer.MAX_VALUE) return "-";
+        return (lon/1e7)+", "+(lat/1e7);
     }
 
     public void readTags(MyDataInputStream in, PrintWriter out) throws IOException
