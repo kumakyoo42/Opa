@@ -1,9 +1,10 @@
 # Opa - a converter between OMA and OPA file formats
 
 ***Note: [Oma](https://github.com/kumakyoo42/Oma) software (including
-additional programs like Opa and libraries) and [related file
-formats](https://github.com/kumakyoo42/oma-file-formats) are currently
-experimental and subject to change without notice.***
+additional programs like Opa and
+[libraries](https://github.com/kumakyoo42/OmaLibJava)) and [related
+file formats](https://github.com/kumakyoo42/oma-file-formats) are
+currently experimental and subject to change without notice.***
 
 The [oma
 format](https://github.com/kumakyoo42/oma-file-formats/blob/main/OMA.md)

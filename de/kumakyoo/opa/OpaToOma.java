@@ -366,7 +366,8 @@ public class OpaToOma
         }
 
         readTags();
-        readMeta();
+        readMembers();
+        readMeta(type[chunk]=='C');
     }
 
     private void readNode() throws IOException
@@ -410,60 +411,11 @@ public class OpaToOma
 
     private void readCollection() throws IOException
     {
-        nextLine("Nodes");
-        int nodes = 0;
-        try
-        {
-            nodes = Integer.parseInt(line);
-        }
-        catch (NumberFormatException e) { error("invalid number of nodes"); }
-
-        out.writeSmallInt(nodes);
-        for (int i=0;i<nodes;i++)
-        {
-            nextLine("Role");
-            out.writeString(line.trim().replaceAll("\\\\x","#").replaceAll("\\\\n","\n").replaceAll("\\\\=","=").replaceAll("\\\\\\\\","\\\\"));
-
-            nextLine("Position");
-            if (line.equals("-"))
-            {
-                out.writeDeltaX(Integer.MAX_VALUE);
-                out.writeDeltaY(Integer.MAX_VALUE);
-                continue;
-            }
-
-            StringTokenizer t = new StringTokenizer(line,",");
-            if (t.countTokens()!=2) error("geo position expected");
-            out.writeDeltaX(convCoord(t.nextToken()));
-            out.writeDeltaY(convCoord(t.nextToken()));
-        }
-
-        nextLine("Ways");
-        int ways = 0;
-        try
-        {
-            ways = Integer.parseInt(line);
-        }
-        catch (NumberFormatException e) { error("invalid number of ways"); }
-
-        out.writeSmallInt(ways);
-        for (int i=0;i<ways;i++)
-        {
-            nextLine("Role");
-            out.writeString(line.trim().replaceAll("\\\\x","#").replaceAll("\\\\n","\n").replaceAll("\\\\=","=").replaceAll("\\\\\\\\","\\\\"));
-
-            positions("Positions");
-        }
-
-        nextLine("Areas");
-        int areas = 0;
-        try
-        {
-            areas = Integer.parseInt(line);
-        }
-        catch (NumberFormatException e) { error("invalid number of areas"); }
-
-        out.writeSmallInt(areas);
+        nextLine("ID");
+        nextLine("BoundingBox");
+        int[] bb = readBB();
+        for (int i=0;i<4;i++)
+            out.writeInt(bb==null?Integer.MAX_VALUE:bb[i]);
     }
 
     private void positions(String key) throws IOException
@@ -499,9 +451,9 @@ public class OpaToOma
         }
     }
 
-    private void readMeta() throws IOException
+    private void readMeta(boolean force_id) throws IOException
     {
-        if (id)
+        if (id || force_id)
         {
             nextLine("ID");
             try
@@ -581,6 +533,41 @@ public class OpaToOma
 
             keys.add(line.substring(0,pos).trim().replaceAll("\\\\x","#").replaceAll("\\\\n","\n").replaceAll("\\\\=","=").replaceAll("\\\\\\\\","\\\\"));
             values.add(line.substring(pos+3).trim().replaceAll("\\\\x","#").replaceAll("\\\\n","\n").replaceAll("\\\\=","=").replaceAll("\\\\\\\\","\\\\"));
+        }
+    }
+
+    private void readMembers() throws IOException
+    {
+        nextLine("Members");
+
+        int members = 0;
+        try
+        {
+            members = Integer.parseInt(line);
+        }
+        catch (NumberFormatException e) { error("invalid number of members"); }
+
+        out.writeSmallInt(members);
+        for (int i=0;i<members;i++)
+        {
+            nextLineUnfiltered();
+            StringTokenizer t = new StringTokenizer(line," ");
+            long id = 0;
+            int nr = 0;
+            try
+            {
+                id = Long.parseLong(t.nextToken());
+                nr = Integer.parseInt(t.nextToken());
+            }
+            catch (NumberFormatException e) { error("invalid number"); }
+            String role="";
+            while (t.hasMoreTokens())
+                role += " "+(t.nextToken().replaceAll("\\\\x","#").replaceAll("\\\\n","\n").replaceAll("\\\\=","=").replaceAll("\\\\\\\\","\\\\"));
+            role = role.trim();
+
+            out.writeLong(id);
+            out.writeString(role);
+            out.writeSmallInt(nr);
         }
     }
 
@@ -690,6 +677,7 @@ public class OpaToOma
 
     private void error(String msg)
     {
+        new Throwable().printStackTrace();
         System.err.println(infile+":"+in.getLineNumber()+": "+msg);
         System.exit(-1);
     }

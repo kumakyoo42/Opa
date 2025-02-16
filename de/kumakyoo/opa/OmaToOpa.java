@@ -194,27 +194,14 @@ public class OmaToOpa
                             :(type=='A'?Area.readGeo(in)
                             :Collection.readGeo(in)));
             e.readTags(in);
-            e.readMetaData(in,features);
+            e.readMembers(in);
+            e.readMetaData(in,features|(type=='C'?2:0));
             if (type=='N')
                 out.println("        Position: "+convertPosition(((Node)e).lon,((Node)e).lat));
             else if (type=='C')
             {
-                out.println("        Nodes: "+((Collection)e).nlon.length);
-                for (int j=0;j<((Collection)e).nlon.length;j++)
-                {
-                    out.println("          Role: "+escapeEqual(((Collection)e).noderole[j]));
-                    out.println("          Position: "+convertPosition(((Collection)e).nlon[j],((Collection)e).nlat[j]));
-                }
-                out.println("        Ways: "+((Collection)e).wlon.length);
-                for (int j=0;j<((Collection)e).wlon.length;j++)
-                {
-                    out.println("          Role: "+escapeEqual(((Collection)e).wayrole[j]));
-                    out.println("          Positions: # "+((Collection)e).wlon[j].length);
-                    for (int k=0;k<((Collection)e).wlon[j].length;k++)
-                        out.println("            "+convertPosition(((Collection)e).wlon[j][k],((Collection)e).wlat[j][k]));
-
-                }
-                out.println("        Areas: 0");
+                out.println("        ID: "+e.id);
+                out.println("        BoundingBox: "+bb(((Collection)e).minlon,((Collection)e).minlat,((Collection)e).maxlon,((Collection)e).maxlat));
             }
             else
             {
@@ -237,7 +224,11 @@ public class OmaToOpa
             for (String tag: e.tags.keySet())
                 out.println("          "+escapeEqual(tag)+" = "+escapeEqual(e.tags.get(tag)));
 
-            printMetaData(e,out);
+            out.println("        Members: "+e.members.length);
+            for (Member m: e.members)
+                out.println("          "+m.id+" "+m.nr+" "+escapeEqual(m.role));
+
+            printMetaData(e,out,type=='C');
         }
     }
 
@@ -266,9 +257,9 @@ public class OmaToOpa
         return delta==-32768?in.readInt():(last+delta);
     }
 
-    public void printMetaData(ElementWithID e, PrintWriter out) throws IOException
+    public void printMetaData(ElementWithID e, PrintWriter out, boolean force_id) throws IOException
     {
-        if ((features&2)!=0)
+        if ((features&2)!=0 || force_id)
             out.println("        ID: "+e.id);
         if ((features&4)!=0)
             out.println("        Version: "+e.version);
