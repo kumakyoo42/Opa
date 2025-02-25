@@ -412,10 +412,36 @@ public class OpaToOma
     private void readCollection() throws IOException
     {
         nextLine("ID");
-        nextLine("BoundingBox");
-        int[] bb = readBB();
-        for (int i=0;i<4;i++)
-            out.writeInt(bb==null?Integer.MAX_VALUE:bb[i]);
+
+        nextLine("Slices");
+        int slices = 0;
+        try
+        {
+            slices = Integer.parseInt(line);
+        }
+        catch (NumberFormatException e) { error("invalid number of slices"); }
+
+        out.writeSmallInt(slices);
+
+        for (int i=0;i<slices;i++)
+        {
+            nextLine("Type");
+            if (line.length()!=1) error("unknown type '"+line+"'");
+            out.writeByte((byte)line.charAt(0));
+
+            nextLine("BoundingBox");
+            int[] bb = readBB();
+            for (int j=0;j<4;j++)
+                out.writeInt(bb==null?Integer.MAX_VALUE:bb[j]);
+
+            nextLine("Key");
+            line = line.trim().replaceAll("\\\\x","#").replaceAll("\\\\n","\n").replaceAll("\\\\=","=").replaceAll("\\\\\\\\","\\\\");
+            out.writeString(line);
+
+            nextLine("Value");
+            line = line.trim().replaceAll("\\\\x","#").replaceAll("\\\\n","\n").replaceAll("\\\\=","=").replaceAll("\\\\\\\\","\\\\");
+            out.writeString(line);
+        }
     }
 
     private void positions(String key) throws IOException

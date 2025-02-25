@@ -1,14 +1,11 @@
 package de.kumakyoo.opa;
 
-import java.util.List;
+import java.util.*;
 import java.io.*;
 
 public class Collection extends ElementWithID
 {
-    int minlon;
-    int minlat;
-    int maxlon;
-    int maxlat;
+    List<Slice> slices;
 
     public Collection()
     {
@@ -16,10 +13,10 @@ public class Collection extends ElementWithID
 
     public Collection(MyDataInputStream in, int features) throws IOException
     {
-        minlon = in.readInt();
-        minlat = in.readInt();
-        maxlon = in.readInt();
-        maxlat = in.readInt();
+        int count = in.readSmallInt();
+        slices = new ArrayList<>(count);
+        for (int i=0;i<count;i++)
+            slices.add(new Slice(in.readByte(),in.readInt(),in.readInt(),in.readInt(),in.readInt(),in.readString(),in.readString()));
 
         readTags(in);
         readMembers(in);
@@ -28,19 +25,26 @@ public class Collection extends ElementWithID
 
     public static Collection readGeo(MyDataInputStream in) throws IOException
     {
-        Collection c = new Collection();
-        c.minlon = in.readInt();
-        c.minlat = in.readInt();
-        c.maxlon = in.readInt();
-        c.maxlat = in.readInt();
-        return c;
+        Collection col = new Collection();
+        int count = in.readSmallInt();
+        col.slices = new ArrayList<>(count);
+        for (int i=0;i<count;i++)
+            col.slices.add(new Slice(in.readByte(),in.readInt(),in.readInt(),in.readInt(),in.readInt(),in.readString(),in.readString()));
+        return col;
     }
 
     public void writeGeo(MyDataOutputStream out) throws IOException
     {
-        out.writeInt(minlon);
-        out.writeInt(minlat);
-        out.writeInt(maxlon);
-        out.writeInt(maxlat);
+        out.writeSmallInt(slices.size());
+        for (Slice s:slices)
+        {
+            out.writeByte(s.type);
+            out.writeInt(s.minlon);
+            out.writeInt(s.minlat);
+            out.writeInt(s.maxlon);
+            out.writeInt(s.maxlat);
+            out.writeString(s.key);
+            out.writeString(s.value);
+        }
     }
 }

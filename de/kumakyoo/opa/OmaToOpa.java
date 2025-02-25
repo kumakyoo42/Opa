@@ -201,7 +201,14 @@ public class OmaToOpa
             else if (type=='C')
             {
                 out.println("        ID: "+e.id);
-                out.println("        BoundingBox: "+bb(((Collection)e).minlon,((Collection)e).minlat,((Collection)e).maxlon,((Collection)e).maxlat));
+                out.println("        Slices: "+((Collection)e).slices.size());
+                for (Slice s: ((Collection)e).slices)
+                {
+                    out.println("          Type: "+((char)s.type));
+                    out.println("          BoundingBox: "+bb(s.minlon,s.minlat,s.maxlon,s.maxlat));
+                    out.println("          Key: "+s.key);
+                    out.println("          Value: "+s.value);
+                }
             }
             else
             {
