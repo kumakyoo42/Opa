@@ -435,11 +435,11 @@ public class OpaToOma
                 out.writeInt(bb==null?Integer.MAX_VALUE:bb[j]);
 
             nextLine("Key");
-            line = line.trim().replaceAll("\\\\x","#").replaceAll("\\\\n","\n").replaceAll("\\\\=","=").replaceAll("\\\\\\\\","\\\\");
+            line = replaceEscapeSequences(line.trim());
             out.writeString(line);
 
             nextLine("Value");
-            line = line.trim().replaceAll("\\\\x","#").replaceAll("\\\\n","\n").replaceAll("\\\\=","=").replaceAll("\\\\\\\\","\\\\");
+            line = replaceEscapeSequences(line.trim());
             out.writeString(line);
         }
     }
@@ -544,7 +544,7 @@ public class OpaToOma
         while (true)
         {
             nextLineUnfiltered();
-            int pos = line==null?-1:line.indexOf(" = ");
+            int pos = line==null?-1:line.indexOf(" =");
             if (pos==-1)
             {
                 out.writeSmallInt(keys.size());
@@ -557,8 +557,8 @@ public class OpaToOma
                 return;
             }
 
-            keys.add(line.substring(0,pos).trim().replaceAll("\\\\x","#").replaceAll("\\\\n","\n").replaceAll("\\\\=","=").replaceAll("\\\\\\\\","\\\\"));
-            values.add(line.substring(pos+3).trim().replaceAll("\\\\x","#").replaceAll("\\\\n","\n").replaceAll("\\\\=","=").replaceAll("\\\\\\\\","\\\\"));
+            keys.add(replaceEscapeSequences(line.substring(0,pos).trim()));
+            values.add(replaceEscapeSequences(line.substring(pos+2).trim()));
         }
     }
 
@@ -577,19 +577,16 @@ public class OpaToOma
         for (int i=0;i<members;i++)
         {
             nextLineUnfiltered();
-            StringTokenizer t = new StringTokenizer(line," ");
+            String[] split = line.split(" ",3);
             long id = 0;
             int nr = 0;
             try
             {
-                id = Long.parseLong(t.nextToken());
-                nr = Integer.parseInt(t.nextToken());
+                id = Long.parseLong(split[0]);
+                nr = Integer.parseInt(split[1]);
             }
             catch (NumberFormatException e) { error("invalid number"); }
-            String role="";
-            while (t.hasMoreTokens())
-                role += " "+(t.nextToken().replaceAll("\\\\x","#").replaceAll("\\\\n","\n").replaceAll("\\\\=","=").replaceAll("\\\\\\\\","\\\\"));
-            role = role.trim();
+            String role=replaceEscapeSequences(split[2]);
 
             out.writeLong(id);
             out.writeString(role);
@@ -657,6 +654,52 @@ public class OpaToOma
         }
 
         return val;
+    }
+
+    private String replaceEscapeSequences(String s)
+    {
+        if (s==null || s.length()==0) error("empty string");
+        if (s.charAt(0)=='\"')
+        {
+            if (s.length()<2) error("quote without match");
+            s = s.substring(1,s.length()-1);
+        }
+
+        StringBuffer b = new StringBuffer();
+        int i=0;
+        while (i<s.length())
+        {
+            char c = s.charAt(i);
+            i++;
+            if (c=='\\')
+            {
+                if (i>=s.length()) error("trailing backslash");
+                c = s.charAt(i);
+                i++;
+
+                if (c=='e')
+                    b.append('=');
+                else if (c=='x')
+                    b.append('#');
+                else if (c=='b')
+                    b.append('\\');
+                else if (c=='n')
+                    b.append('\n');
+                else if (c=='r')
+                    b.append('\r');
+                else if (c!='u')
+                    error("wrong character after backslash");
+                else
+                {
+                    if (i>s.length()-4) error("incomplete unicode character");
+                    b.append((char)Integer.parseInt(s.substring(i,i+4),16));
+                    i+=4;
+                }
+            }
+            else
+                b.append(c);
+        }
+        return b.toString();
     }
 
     //////////////////////////////////////////////////////////////////

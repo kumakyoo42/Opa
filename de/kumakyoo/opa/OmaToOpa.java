@@ -152,6 +152,7 @@ public class OmaToOpa
         in.setPosition(start);
         long sliceStartPosition = start+in.readInt();
 
+        out.flush();
         in.setPosition(sliceStartPosition);
         int sliceCount = in.readSmallInt();
 
@@ -255,7 +256,25 @@ public class OmaToOpa
 
     public String escapeEqual(String s)
     {
-        return s.replaceAll("\\\\","\\\\\\\\").replaceAll("=","\\\\=").replaceAll("\n","\\\\n").replaceAll("#","\\\\x");
+        if (s.length()==0) return "\"\"";
+        boolean quote = s.charAt(0)==' ' || s.charAt(0)=='\"'
+            || s.charAt(s.length()-1)==' ' || s.charAt(s.length()-1)=='\"';
+        
+        StringBuffer b = new StringBuffer();
+        if (quote) b.append("\"");
+        for (int i=0;i<s.length();i++)
+        {
+            char c = s.charAt(i);
+            if (c=='=') b.append("\\e");
+            else if (c=='#') b.append("\\x");
+            else if (c=='\\') b.append("\\b");
+            else if (c=='\n') b.append("\\n");
+            else if (c=='\r') b.append("\\r");
+            else if (c<32 || c==0x7f) b.append("\\u").append(String.format("%04x",(int)c));
+            else b.append(s.charAt(i));
+        }
+        if (quote) b.append("\"");
+        return b.toString();
     }
 
     public int delta(int last, MyDataInputStream in) throws IOException
