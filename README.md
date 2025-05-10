@@ -12,10 +12,6 @@ is a binary format, making it hard to read for humans. Opa can be used
 to convert between files in OMA format and a human readable version
 called OPA format.
 
-Files converted to OPA format and back should be identical to the
-original files. This is not true for the other way round. In this case
-formatting and comments may differ.
-
 ## Install
 
 Download [opa.jar](/opa.jar) and make sure that a Java Runtime
