@@ -72,12 +72,12 @@ public class OmaToOpa
         List<String> features = new ArrayList<>();
 
         if ((f&1)!=0) features.add("zipped");
-        if ((f&2)!=0) features.add("id");
-        if ((f&4)!=0) features.add("version");
-        if ((f&8)!=0) features.add("timestamp");
-        if ((f&16)!=0) features.add("changeset");
-        if ((f&32)!=0) features.add("user");
-        if ((f&64)!=0) features.add("once");
+        if ((f&4)!=0) features.add("id");
+        if ((f&8)!=0) features.add("version");
+        if ((f&16)!=0) features.add("timestamp");
+        if ((f&32)!=0) features.add("changeset");
+        if ((f&64)!=0) features.add("user");
+        if ((f&128)!=0) features.add("once");
 
         return features.size()==0?"-":String.join(", ",features);
     }
@@ -195,7 +195,7 @@ public class OmaToOpa
                             :Collection.readGeo(in)));
             e.readTags(in);
             e.readMembers(in);
-            e.readMetaData(in,features|(type=='C'?2:0));
+            e.readMetaData(in,features|(type=='C'?4:0));
             if (type=='N')
                 out.println("        Position: "+convertPosition(((Node)e).lon,((Node)e).lat));
             else if (type=='C')
@@ -266,15 +266,15 @@ public class OmaToOpa
 
     public void printMetaData(ElementWithID e, PrintWriter out, boolean force_id) throws IOException
     {
-        if ((features&2)!=0 || force_id)
+        if ((features&4)!=0 || force_id)
             out.println("        ID: "+e.id);
-        if ((features&4)!=0)
-            out.println("        Version: "+e.version);
         if ((features&8)!=0)
-            out.println("        Timestamp: "+e.timestamp+" # "+(new Date(e.timestamp*1000)));
+            out.println("        Version: "+e.version);
         if ((features&16)!=0)
-            out.println("        Changeset: "+e.changeset);
+            out.println("        Timestamp: "+e.timestamp+" # "+(new Date(e.timestamp*1000)));
         if ((features&32)!=0)
+            out.println("        Changeset: "+e.changeset);
+        if ((features&64)!=0)
             out.println("        User: "+e.uid+" ("+e.user+")");
     }
 }

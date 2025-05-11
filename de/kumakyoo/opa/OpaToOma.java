@@ -96,26 +96,26 @@ public class OpaToOma
                 break;
             case "id":
                 id = true;
-                features += 2;
+                features += 4;
                 break;
             case "version":
                 version = true;
-                features += 4;
+                features += 8;
                 break;
             case "timestamp":
                 timestamp = true;
-                features += 8;
+                features += 16;
                 break;
             case "changeset":
                 changeset = true;
-                features += 16;
+                features += 32;
                 break;
             case "user":
                 user = true;
-                features += 32;
+                features += 64;
                 break;
             case "once":
-                features += 64;
+                features += 128;
                 break;
             case "-":
                 if (count==1) break;
