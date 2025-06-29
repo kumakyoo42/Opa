@@ -6,7 +6,7 @@ import java.util.zip.*;
 
 public class OpaToOma
 {
-    static final byte VERSION = 0;
+    static final byte VERSION = 1;
 
     private String infile;
     private String outfile;
@@ -58,7 +58,7 @@ public class OpaToOma
         readFeatures();
         readHeaderBB();
         out.writeLong(0);
-        readTypeTable();
+        readHeaderEntries();
         readChunks();
         in.close();
 
@@ -90,32 +90,28 @@ public class OpaToOma
             String token = t.nextToken().trim();
             switch (token)
             {
-            case "zipped":
-                zipped = true;
-                features += 1;
-                break;
             case "id":
                 id = true;
-                features += 4;
+                features += 1;
                 break;
             case "version":
                 version = true;
-                features += 8;
+                features += 2;
                 break;
             case "timestamp":
                 timestamp = true;
-                features += 16;
+                features += 4;
                 break;
             case "changeset":
                 changeset = true;
-                features += 32;
+                features += 8;
                 break;
             case "user":
                 user = true;
-                features += 64;
+                features += 16;
                 break;
             case "once":
-                features += 128;
+                features += 32;
                 break;
             case "-":
                 if (count==1) break;
@@ -136,8 +132,55 @@ public class OpaToOma
             out.writeInt(bb==null?Integer.MAX_VALUE:bb[i]);
     }
 
+    private void readHeaderEntries() throws IOException
+    {
+        while (true)
+        {
+            nextLineUnfiltered();
+            pushBack();
+
+            int pos = line.indexOf(":");
+            if (pos==-1) break;
+            String token = line.substring(0,pos);
+
+            if ("Compression".equals(token))
+                readCompression();
+            else if ("Types".equals(token))
+                readTypeTable();
+            else
+                break;
+        }
+        out.writeByte(0);
+    }
+
+    private void readCompression() throws IOException
+    {
+        nextLine("Compression");
+
+        out.writeByte('c');
+        if ("DEFLATE".equals(line))
+        {
+            zipped = true;
+            out.writeInt((int)out.getPosition()+12);
+            out.writeString(line);
+        }
+        else if ("NONE".equals(line))
+        {
+            out.writeInt((int)out.getPosition()+9);
+            out.writeString(line);
+        }
+        else
+            error("Unknown compression method");
+    }
+
     private void readTypeTable() throws IOException
     {
+        out.writeByte('t'+(zipped?128:0));
+        long pos = out.getPosition();
+        out.writeInt(0);
+        if (zipped)
+            out.writeInt(0);
+
         MyDataOutputStream orig = out;
         BufferedOutputStream bos = null;
         DeflaterOutputStream dos = null;
@@ -201,6 +244,13 @@ public class OpaToOma
             dos.finish();
             out = orig;
         }
+
+        long npos = out.getPosition();
+        out.setPosition(pos);
+        out.writeInt((int)npos);
+        if (zipped)
+            out.writeInt((int)(npos-pos-8));
+        out.setPosition(npos);
     }
 
     private void readChunks() throws IOException
@@ -325,6 +375,9 @@ public class OpaToOma
         catch (NumberFormatException e) { error("invalid number of elements"); }
 
         out.writeInt(elements);
+        long pos = out.getPosition();
+        if (zipped)
+            out.writeInt(0);
         out.resetDelta();
 
         MyDataOutputStream orig = out;
@@ -346,6 +399,11 @@ public class OpaToOma
             bos.flush();
             dos.finish();
             out = orig;
+
+            long npos = out.getPosition();
+            out.setPosition(pos);
+            out.writeInt((int)(npos-pos-4));
+            out.setPosition(npos);
         }
 
         return value;

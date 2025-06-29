@@ -11,6 +11,7 @@ public class OmaToOpa
 
     private byte version;
     private int features;
+    private boolean zipped = false;
     private Chunk[] chunks;
 
     private Map<Integer,String> wayKeys;
@@ -44,7 +45,7 @@ public class OmaToOpa
         out.println("BoundingBox: "+bb(in.readInt(),in.readInt(),in.readInt(),in.readInt()));
 
         long chunktablePos = in.readLong();
-        readTypeTable(in);
+        readHeaderEntries(in);
         in.close();
 
         in = new MyDataInputStream(infile);
@@ -71,13 +72,12 @@ public class OmaToOpa
     {
         List<String> features = new ArrayList<>();
 
-        if ((f&1)!=0) features.add("zipped");
-        if ((f&4)!=0) features.add("id");
-        if ((f&8)!=0) features.add("version");
-        if ((f&16)!=0) features.add("timestamp");
-        if ((f&32)!=0) features.add("changeset");
-        if ((f&64)!=0) features.add("user");
-        if ((f&128)!=0) features.add("once");
+        if ((f&1)!=0) features.add("id");
+        if ((f&2)!=0) features.add("version");
+        if ((f&4)!=0) features.add("timestamp");
+        if ((f&8)!=0) features.add("changeset");
+        if ((f&16)!=0) features.add("user");
+        if ((f&32)!=0) features.add("once");
 
         return features.size()==0?"-":String.join(", ",features);
     }
@@ -88,10 +88,59 @@ public class OmaToOpa
         return (minlon/1e7)+", "+(minlat/1e7)+", "+(maxlon/1e7)+", "+(maxlat/1e7);
     }
 
-    public void readTypeTable(MyDataInputStream in) throws IOException
+    public void readHeaderEntries(MyDataInputStream in) throws IOException
     {
-        if ((features&1)!=0)
+        while (true)
+        {
+            out.flush();
+            int type = in.readByte();
+            if (type==0) break;
+            if (type<0) type+=256;
+            int next = in.readInt();
+
+            switch (type & 127)
+            {
+            case 'c':
+                readCompressionAlgorithm(in);
+                break;
+            case 't':
+                readTypeTable(in,zipped && (type&128)==128);
+                break;
+            default:
+                System.err.println("unknown header entry type: "+type);
+                System.exit(-1);
+            }
+
+            in.setPosition(next);
+        }
+    }
+
+    public void readCompressionAlgorithm(MyDataInputStream in) throws IOException
+    {
+        String name = in.readString();
+        if ("NONE".equals(name))
+        {
+            System.out.println("Compression: NONE");
+            zipped = false;
+            return;
+        }
+        if ("DEFLATE".equals(name))
+        {
+            System.out.println("Compression: DEFLATE");
+            zipped = true;
+            return;
+        }
+        System.err.println("unknown compression algorithm: "+name);
+        System.exit(-1);
+    }
+
+    public void readTypeTable(MyDataInputStream in, boolean zipped) throws IOException
+    {
+        if (zipped)
+        {
+            in.readInt(); // length
             in = new MyDataInputStream(new BufferedInputStream(new InflaterInputStream(in)));
+        }
 
         int typeCount = in.readSmallInt();
         out.println("Types: "+typeCount);
@@ -178,8 +227,11 @@ public class OmaToOpa
         int count = in.readInt();
         out.println("      Elements: "+count);
 
-        if ((features&1)!=0)
+        if (zipped)
+        {
+            in.readInt(); // length
             in = new MyDataInputStream(new BufferedInputStream(new InflaterInputStream(in)));
+        }
 
         for (int i=0;i<count;i++)
         {
@@ -196,7 +248,7 @@ public class OmaToOpa
                             :Collection.readGeo(in)));
             e.readTags(in);
             e.readMembers(in);
-            e.readMetaData(in,features|(type=='C'?4:0));
+            e.readMetaData(in,features|(type=='C'?1:0));
             if (type=='N')
                 out.println("        Position: "+convertPosition(((Node)e).lon,((Node)e).lat));
             else if (type=='C')
@@ -259,7 +311,7 @@ public class OmaToOpa
         if (s.length()==0) return "\"\"";
         boolean quote = s.charAt(0)==' ' || s.charAt(0)=='\"'
             || s.charAt(s.length()-1)==' ' || s.charAt(s.length()-1)=='\"';
-        
+
         StringBuffer b = new StringBuffer();
         if (quote) b.append("\"");
         for (int i=0;i<s.length();i++)
@@ -285,15 +337,15 @@ public class OmaToOpa
 
     public void printMetaData(ElementWithID e, PrintWriter out, boolean force_id) throws IOException
     {
-        if ((features&4)!=0 || force_id)
+        if ((features&1)!=0 || force_id)
             out.println("        ID: "+e.id);
-        if ((features&8)!=0)
+        if ((features&2)!=0)
             out.println("        Version: "+e.version);
-        if ((features&16)!=0)
+        if ((features&4)!=0)
             out.println("        Timestamp: "+e.timestamp+" # "+(new Date(e.timestamp*1000)));
-        if ((features&32)!=0)
+        if ((features&8)!=0)
             out.println("        Changeset: "+e.changeset);
-        if ((features&64)!=0)
+        if ((features&16)!=0)
             out.println("        User: "+e.uid+" ("+e.user+")");
     }
 }
